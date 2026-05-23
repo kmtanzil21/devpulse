@@ -1,5 +1,6 @@
 import express, { type Application, type Request, type Response } from 'express'
 import {Pool} from 'pg'
+import bcrypt from 'bcryptjs'
 const app: Application = express()
 const port = 5000
 app.use(express.json())
@@ -40,9 +41,11 @@ app.get('/', (req:Request, res:Response) => {
 
 app.post('/api/auth/signup', async(req:Request, res:Response)=>{
     const {name, email, password, role}=req.body;
-    const result =await pool.query(`
+    const hashedPassword = await bcrypt.hash(password, 10);
+    try{
+        const result =await pool.query(`
         INSERT INTO users(name,email,password, role) VALUES($1,$2,$3,$4) RETURNING *
-    `,[name, email, password, role])
+    `,[name, email, hashedPassword, role])
     res.status(201).json({
         success:true,
         message:"Data received successfully",
@@ -55,7 +58,14 @@ app.post('/api/auth/signup', async(req:Request, res:Response)=>{
             updated_at: result.rows[0].updated_at
         }
     })
-    console.log(result.rows[0]);
+    }catch(error:any){
+        console.error(error);
+        res.status(500).json({
+            success:false,
+            message: error.message,
+            error:error
+        })
+    }
 })
 
 app.listen(port, () => {
