@@ -16,8 +16,9 @@ const initDB=async()=>{
             name VARCHAR(100) NOT NULL,
             email VARCHAR(100) UNIQUE NOT NULL,
             password VARCHAR(255) NOT NULL,
+            role VARCHAR(500),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UPDATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
             
             )
@@ -28,6 +29,7 @@ const initDB=async()=>{
     }
 
 }
+initDB();
 
 app.get('/', (req:Request, res:Response) => {
   res.status(200).json({
@@ -36,13 +38,24 @@ app.get('/', (req:Request, res:Response) => {
   })
 })
 
-app.post('/', async(req:Request, res:Response)=>{
-    const body=req.body;
+app.post('/api/auth/signup', async(req:Request, res:Response)=>{
+    const {name, email, password, role}=req.body;
+    const result =await pool.query(`
+        INSERT INTO users(name,email,password, role) VALUES($1,$2,$3,$4) RETURNING *
+    `,[name, email, password, role])
     res.status(201).json({
         success:true,
         message:"Data received successfully",
-        data:body
+        data:{
+            id: result.rows[0].id,
+            name: result.rows[0].name,
+            email: result.rows[0].email,
+            role: result.rows[0].role,
+            created_at: result.rows[0].created_at,
+            updated_at: result.rows[0].updated_at
+        }
     })
+    console.log(result.rows[0]);
 })
 
 app.listen(port, () => {
